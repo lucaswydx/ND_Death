@@ -46,3 +46,6 @@ For support, bug reports, or feature requests, please create an issue on this re
 [Discord](https://discord.gg/andys-development-857672921912836116)
 
 Enjoy the enhanced player experience with ND_Death!
+### Authors
+https://github.com/lucaswydx
+https://github.com/TheStoicBear
