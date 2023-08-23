@@ -12,7 +12,6 @@ client_scripts {
 server_scripts {
     "source/server.lua"
 }
-
 shared_scripts {
     "config.lua"
 }
