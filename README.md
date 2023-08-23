@@ -47,5 +47,5 @@ For support, bug reports, or feature requests, please create an issue on this re
 
 Enjoy the enhanced player experience with ND_Death!
 ### Authors
-https://github.com/lucaswydx
-https://github.com/TheStoicBear
+- https://github.com/lucaswydx
+- https://github.com/TheStoicBear
