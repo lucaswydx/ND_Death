@@ -24,13 +24,28 @@ end
 function RespawnPlayer()
     local playerPos = Config.respawnPosition
     local respawnHeading = Config.respawnHeading
-    local playerPed = GetPlayerPed(-1)
+    local playerPed = PlayerPedId() -- Use PlayerPedId() directly
     
     IsDead = false
     DoScreenFadeOut(1500)
     Citizen.Wait(1500) 
     NetworkResurrectLocalPlayer(playerPos.x, playerPos.y, playerPos.z, respawnHeading, true, true, false)
-    SetEntityCoordsNoOffset(playerPed, playerPos.x, playerPos.y, playerPos.z, true, true, true)
+    SetEntityHeading(playerPed, respawnHeading)
+    SetPlayerInvincible(playerPed, false)
+    ClearPedBloodDamage(playerPed)
+    DoScreenFadeIn(1500)
+    secondsRemaining = Config.respawnTime
+end
+
+function RespawnPlayerAtDownedPosition()
+    local playerPos = GetEntityCoords(PlayerPedId())
+    local respawnHeading = Config.respawnHeading
+    local playerPed = PlayerPedId() -- Use PlayerPedId() directly
+    
+    IsDead = false
+    DoScreenFadeOut(1500)
+    Citizen.Wait(1500) 
+    NetworkResurrectLocalPlayer(playerPos.x, playerPos.y, playerPos.z, respawnHeading, true, true, false)
     SetEntityHeading(playerPed, respawnHeading)
     SetPlayerInvincible(playerPed, false)
     ClearPedBloodDamage(playerPed)
@@ -96,12 +111,11 @@ Citizen.CreateThread(function()
     end
 end)
 
--- This event is triggered from the server to revive a player
-RegisterNetEvent("admin:revivePlayer")
-AddEventHandler("admin:revivePlayer", function()
-    local playerPed = GetPlayerPed(-1)
-    
+RegisterNetEvent("admin:revivePlayerAtPosition")
+AddEventHandler("admin:revivePlayerAtPosition", function()
+    local playerPed = PlayerPedId()
+
     if IsEntityDead(playerPed) then
-        RespawnPlayer()
+        RespawnPlayerAtDownedPosition() -- Call the new function
     end
 end)
