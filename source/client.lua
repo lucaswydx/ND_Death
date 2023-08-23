@@ -1,6 +1,15 @@
-local IsDead = false
-local secondsRemaining = Config.respawnTime
+-- Load core object from ND_Core export
+local NDCore = exports["ND_Core"]:GetCoreObject()
 
+-- Initialize flags and timers
+local IsDead = false
+local IsEMSNotified = false  -- Flag to prevent duplicate notifications
+local secondsRemaining = Config.respawnTime
+local isBleedingOut = false
+local bleedOutTime = 0
+
+
+-- Function to draw custom text on the screen
 function DrawCustomText(text, x, y, scale, font)
     SetTextFont(font)
     SetTextProportional(0)
@@ -14,11 +23,20 @@ function DrawCustomText(text, x, y, scale, font)
     DrawText(x, y)
 end
 
+
+-- Function to show respawn text
 function ShowRespawnText()
-    local textToShow = IsDead and (secondsRemaining > 0 and Config.respawnTextWithTimer:format(secondsRemaining) or Config.respawnText) or ""
-    DrawCustomText(textToShow, 0.450, 0.800, 0.50, 4)
+    local textToShow
+    if secondsRemaining > 0 then
+        textToShow = IsDead and Config.respawnTextWithTimer:format(secondsRemaining) or ""
+    else
+        textToShow = IsDead and Config.respawnText or ""
+    end
+    DrawCustomText(textToShow, 0.500, 0.900, 0.50, 4) -- Updated position
 end
 
+
+-- Function to respawn the player
 function RespawnPlayer()
     local playerPos = Config.respawnPosition
     local respawnHeading = Config.respawnHeading
@@ -36,10 +54,12 @@ function RespawnPlayer()
     secondsRemaining = Config.respawnTime
 end
 
+
+-- Function to respawn the player at downed position
 function RespawnPlayerAtDownedPosition()
     local playerPos = GetEntityCoords(PlayerPedId())
     local respawnHeading = Config.respawnHeading
-    local playerPed = PlayerPedId()
+    local playerPed = PlayerPedId() -- Use PlayerPedId() directly
     
     IsDead = false
     DoScreenFadeOut(1500)
@@ -52,25 +72,45 @@ function RespawnPlayerAtDownedPosition()
     secondsRemaining = Config.respawnTime
 end
 
--- Main Loop --
 
+-- Main Loop --
 Citizen.CreateThread(function()
     while true do
         Citizen.Wait(0)
         
-        local health = GetEntityHealth(GetPlayerPed(-1))
+        local health = GetEntityHealth(PlayerPedId())
         
         if health < 2 then
             IsDead = true
+            if Config.AutoNotify then
+                if not IsEMSNotified then
+                    -- Notify medical departments when there's a downed player
+                    for _, department in pairs(Config.MedDept) do
+                        local character = NDCore.Functions.GetSelectedCharacter()
+
+                        if character then
+                            if character.job == department then
+                                local playerCoords = GetEntityCoords(PlayerPedId())
+                                local message = "A player is down and needs medical attention. Respond to the location:"
+                                local blip = NotifyMedicDept(message, playerCoords) -- Pass playerCoords to the function
+                                IsEMSNotified = true
+                                print("Notifying medic department.")
+                                TriggerServerEvent("ND_Death:EMSNotify", playerCoords) -- Notify server to send EMS message
+                                break
+                            end
+                        end
+                    end
+                end
+            end
         else
             IsDead = false
+            IsEMSNotified = false
         end
         
         if IsDead then
             exports.spawnmanager:setAutoSpawn(false)
             ShowRespawnText()
-            
-            if IsControlJustReleased(1, Config.respawnKey) and secondsRemaining <= 0 then
+            if IsControlJustReleased(1, 38) then
                 RespawnPlayer()
             end
         end
@@ -78,7 +118,6 @@ Citizen.CreateThread(function()
 end)
 
 -- Timer Loop --
-
 Citizen.CreateThread(function()
     while true do
         Citizen.Wait(1000)
@@ -86,14 +125,67 @@ Citizen.CreateThread(function()
         if secondsRemaining > 0 and IsDead then
             secondsRemaining = secondsRemaining - 1
         end
+        
+        if isBleedingOut and GetGameTimer() > bleedOutTime then
+            RespawnPlayer() -- Respawn the player after bleed out time
+        end
     end
 end)
 
+
+-- Code to revive player at position
 RegisterNetEvent("admin:revivePlayerAtPosition")
 AddEventHandler("admin:revivePlayerAtPosition", function()
     local playerPed = PlayerPedId()
 
     if IsEntityDead(playerPed) then
-        RespawnPlayerAtDownedPosition()
+        RespawnPlayerAtDownedPosition() -- Call the new function
     end
+end)
+
+-- Event to notify EMS about a downed player
+function NotifyMedicDept(message, coordsToBlip)
+    for _, department in pairs(Config.MedDept) do
+        local character = NDCore.Functions.GetSelectedCharacter()
+
+        if character and character.job == department then
+            local location = GetStreetNameFromHashKey(GetStreetNameAtCoord(coordsToBlip.x, coordsToBlip.y, coordsToBlip.z))
+            local messageWithLocation = message .. " Location: " .. location
+
+            TriggerEvent("chatMessage", "^1EMS Call: ^7" .. messageWithLocation)
+
+            -- Add a blip on the map
+            local blip = AddBlipForCoord(coordsToBlip.x, coordsToBlip.y, coordsToBlip.z)
+            SetBlipSprite(blip, 153) -- EMS blip sprite
+            SetBlipDisplay(blip, 2)
+            SetBlipColour(blip, 3) -- Red color
+            SetBlipFlashes(blip, true)
+            SetBlipFlashInterval(blip, 500)
+            SetBlipAsShortRange(blip, true)
+            BeginTextCommandSetBlipName("STRING")
+            AddTextComponentString("EMS Call")
+            EndTextCommandSetBlipName(blip)
+            
+            return blip -- Return the blip ID for later use
+        end
+    end
+end
+
+-- Event to notify EMS about a downed player
+RegisterNetEvent("ND_Death:NotifyEMS")
+AddEventHandler("ND_Death:NotifyEMS", function(playerCoords)
+    local location = GetStreetNameFromHashKey(GetStreetNameAtCoord(playerCoords.x, playerCoords.y, playerCoords.z))
+    TriggerEvent("chatMessage", "^1EMS Call: ^7Player is down and needs medical attention. Respond to the location: " .. location)
+
+    -- Create a blip on the map
+    local blip = AddBlipForCoord(playerCoords.x, playerCoords.y, playerCoords.z)
+    SetBlipSprite(blip, 153) -- EMS blip sprite
+    SetBlipDisplay(blip, 2)
+    SetBlipColour(blip, 3) -- Red color
+    SetBlipFlashes(blip, true)
+    SetBlipFlashInterval(blip, 500)
+    SetBlipAsShortRange(blip, true)
+    BeginTextCommandSetBlipName("STRING")
+    AddTextComponentString("EMS Call")
+    EndTextCommandSetBlipName(blip)
 end)
