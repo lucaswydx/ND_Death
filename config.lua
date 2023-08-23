@@ -8,8 +8,10 @@ Config = {
     respawnHeading = 0, -- Change to desired respawn heading (0 by default)
     bleedoutTime = 120, -- Bleed out time in seconds
     adrevCommand = "command.adrev", -- The Ace permission for /adrev command
+    
+    -- Define medical departments for EMS call
     MedDept = {
         "LSPD",
-        "SAFR",
+        "LSFD",
     },
 }
