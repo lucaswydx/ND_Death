@@ -1,6 +1,6 @@
 author "lucaswydx"
 description "Simple Death System made for ND Framework"
-version "1.0.3"
+version "1.0.0"
 
 fx_version "cerulean"
 game "gta5"
