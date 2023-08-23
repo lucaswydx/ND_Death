@@ -4,26 +4,25 @@ RegisterCommand("adrev", function(source, args, rawCommand)
 
     if targetPlayerId then
         local sourcePlayer = source
-        local hasPermission = IsPlayerAceAllowed(sourcePlayer, Config.adrevCommand) -- Using the adrevCommand from config
+        local hasPermission = IsPlayerAceAllowed(sourcePlayer, Config.adrevCommand)
 
         if hasPermission then
-            TriggerClientEvent("admin:revivePlayerAtPosition", -1, targetPlayerId) -- Pass targetPlayerId to the client event
+            TriggerClientEvent("admin:revivePlayerAtPosition", -1, targetPlayerId)
             TriggerClientEvent("chatMessage", source, "^*^5[System]: ^7You have revived ID #" .. targetPlayerId)
         else
-            TriggerClientEvent("chatMessage", source, "^*^5[System]: ^7You don't have permission to use this command.") -- Permission check failed
+            TriggerClientEvent("chatMessage", source, "^*^5[System]: ^7You don't have permission to use this command.")
         end
     else
         TriggerClientEvent("chatMessage", source, "^*^5[System]: ^7Invalid player ID.")
     end
 end, false)
 
--- This event is triggered from the client to revive a player
 RegisterServerEvent("admin:revivePlayerAtPosition")
 AddEventHandler("admin:revivePlayerAtPosition", function(targetPlayerId)
     local targetPlayer = tonumber(targetPlayerId)
 
-    if targetPlayer then
-        TriggerClientEvent("admin:revivePlayerAtPosition", targetPlayer) -- Trigger event to revive at downed position
-        TriggerClientEvent("chatMessage", -1, "^*^5[System]: ^7Player " .. targetPlayer .. " revived by an admin.")
+    if targetPlayerId then
+        TriggerClientEvent("admin:revivePlayerAtPosition", targetPlayer)
+        TriggerClientEvent("chatMessage", -1, "^*^5[System]: You have been revived by an admin.")
     end
 end)
