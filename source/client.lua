@@ -1,7 +1,5 @@
 local IsDead = false
 local secondsRemaining = Config.respawnTime
-local isBleedingOut = false
-local bleedOutTime = 0
 
 function DrawCustomText(text, x, y, scale, font)
     SetTextFont(font)
@@ -24,12 +22,13 @@ end
 function RespawnPlayer()
     local playerPos = Config.respawnPosition
     local respawnHeading = Config.respawnHeading
-    local playerPed = PlayerPedId() -- Use PlayerPedId() directly
+    local playerPed = GetPlayerPed(-1)
     
     IsDead = false
     DoScreenFadeOut(1500)
     Citizen.Wait(1500) 
     NetworkResurrectLocalPlayer(playerPos.x, playerPos.y, playerPos.z, respawnHeading, true, true, false)
+    SetEntityCoordsNoOffset(playerPed, playerPos.x, playerPos.y, playerPos.z, true, true, true)
     SetEntityHeading(playerPed, respawnHeading)
     SetPlayerInvincible(playerPed, false)
     ClearPedBloodDamage(playerPed)
@@ -40,7 +39,7 @@ end
 function RespawnPlayerAtDownedPosition()
     local playerPos = GetEntityCoords(PlayerPedId())
     local respawnHeading = Config.respawnHeading
-    local playerPed = PlayerPedId() -- Use PlayerPedId() directly
+    local playerPed = PlayerPedId()
     
     IsDead = false
     DoScreenFadeOut(1500)
@@ -74,26 +73,9 @@ Citizen.CreateThread(function()
             if IsControlJustReleased(1, Config.respawnKey) and secondsRemaining <= 0 then
                 RespawnPlayer()
             end
-            
-            if IsControlJustReleased(1, 47) and isBleedingOut then -- Check if 'G' key is pressed (47 is the control code for 'G')
-                RespawnPlayer() -- Respawn the player immediately if 'G' is pressed during bleed out
-            end
         end
     end
 end)
-
-
-function CallEMS()
-    local health = GetEntityHealth(PlayerPedId())
-    local isPlayerDowned = health < 2
-    
-    if isPlayerDowned then
-        TriggerEvent("chatMessage", "EMC", "normal", "EMS has been called to your location.")
-        
-        isBleedingOut = true
-        bleedOutTime = GetGameTimer() + Config.bleedoutTime
-    end
-end
 
 -- Timer Loop --
 
@@ -104,10 +86,6 @@ Citizen.CreateThread(function()
         if secondsRemaining > 0 and IsDead then
             secondsRemaining = secondsRemaining - 1
         end
-        
-        if isBleedingOut and GetGameTimer() > bleedOutTime then
-            RespawnPlayer() -- Respawn the player after bleed out time
-        end
     end
 end)
 
@@ -116,6 +94,6 @@ AddEventHandler("admin:revivePlayerAtPosition", function()
     local playerPed = PlayerPedId()
 
     if IsEntityDead(playerPed) then
-        RespawnPlayerAtDownedPosition() -- Call the new function
+        RespawnPlayerAtDownedPosition()
     end
 end)
