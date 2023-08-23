@@ -1,5 +1,5 @@
 author "lucaswydx"
-description "Simple Death System (respawn with admin revive.) made for ND Framework"
+description "Simple Death System made for ND Framework"
 version "1.0.3"
 
 fx_version "cerulean"
