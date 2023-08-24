@@ -90,12 +90,11 @@ Citizen.CreateThread(function()
 
                         if character then
                             if character.job == department then
-                                local playerCoords = GetEntityCoords(PlayerPedId())
+				                local playerCoords = GetEntityCoords(PlayerPedId())
                                 local message = "A player is down and needs medical attention. Respond to the location:"
                                 local blip = NotifyMedicDept(message, playerCoords) -- Pass playerCoords to the function
                                 IsEMSNotified = true
                                 print("Notifying medic department.")
-                                TriggerServerEvent("ND_Death:EMSNotify", playerCoords) -- Notify server to send EMS message
                                 break
                             end
                         end
@@ -147,12 +146,20 @@ end)
 function NotifyMedicDept(message, coordsToBlip)
     for _, department in pairs(Config.MedDept) do
         local character = NDCore.Functions.GetSelectedCharacter()
-
         if character and character.job == department then
             local location = GetStreetNameFromHashKey(GetStreetNameAtCoord(coordsToBlip.x, coordsToBlip.y, coordsToBlip.z))
             local messageWithLocation = message .. " Location: " .. location
-
-            TriggerEvent("chatMessage", "^1EMS Call: ^7" .. messageWithLocation)
+			if GetResourceState("ModernHUD") == "started" then
+				exports["ModernHUD"]:AndyyyNotify({
+					title = "<p style='color: #ff0000;'>EMS Call:</p>",
+					message = "<p style='color: #ffffff;'>Player down and needs medical attention at:</p><br><p style='color: #ff0000;'>" .. location .. "</p>",
+					icon = "fa-solid fa-ambulance",
+					colorHex = "#ff0000",
+					timeout = 8000
+				})
+			else
+				TriggerEvent('chatMessage', '^3EMS Call', { 255, 255, 255 }, 'Player down and needs medical attention at: ' .. location)
+			end
 
             -- Add a blip on the map
             local blip = AddBlipForCoord(coordsToBlip.x, coordsToBlip.y, coordsToBlip.z)
@@ -175,8 +182,6 @@ end
 RegisterNetEvent("ND_Death:NotifyEMS")
 AddEventHandler("ND_Death:NotifyEMS", function(playerCoords)
     local location = GetStreetNameFromHashKey(GetStreetNameAtCoord(playerCoords.x, playerCoords.y, playerCoords.z))
-    TriggerEvent("chatMessage", "^1EMS Call: ^7Player is down and needs medical attention. Respond to the location: " .. location)
-
     -- Create a blip on the map
     local blip = AddBlipForCoord(playerCoords.x, playerCoords.y, playerCoords.z)
     SetBlipSprite(blip, 153) -- EMS blip sprite
@@ -188,4 +193,16 @@ AddEventHandler("ND_Death:NotifyEMS", function(playerCoords)
     BeginTextCommandSetBlipName("STRING")
     AddTextComponentString("EMS Call")
     EndTextCommandSetBlipName(blip)
+    if GetResourceState("ModernHUD") == "started" then
+        exports["ModernHUD"]:AndyyyNotify({
+            title = "<p style='color: #ff0000;'>EMS Call:</p>",
+            message = "<p style='color: #ffffff;'>Player down and needs medical attention at:</p><br><p style='color: #ff0000;'>" .. location .. "</p>",
+            icon = "fa-solid fa-ambulance",
+            colorHex = "#ff0000",
+            timeout = 8000
+        })
+    else
+        TriggerEvent('chatMessage', '^3EMS Call', { 255, 255, 255 }, 'Player down and needs medical attention at: ' .. location)
+    end
 end)
+
