@@ -133,8 +133,8 @@ end)
 
 
 -- Code to revive player at position
-RegisterNetEvent("admin:revivePlayerAtPosition")
-AddEventHandler("admin:revivePlayerAtPosition", function()
+RegisterNetEvent("ND_Death:AdminRevivePlayerAtPosition")
+AddEventHandler("ND_Death:AdminRevivePlayerAtPosition", function()
     local playerPed = PlayerPedId()
 
     if IsEntityDead(playerPed) then
