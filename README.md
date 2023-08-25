@@ -31,10 +31,6 @@
 
 ## Configurables
 
-The behavior and features of the ND_Death script can be customized through the provided configuration file. The following configurables are available:
-
-## Configurables
-
 The behavior and features of the ND_Death script can be customized through the provided configuration file (`config.lua`). The following configurables are available:
 
 - `respawnKey`: Set the keybind for respawning the player (default is `38` which corresponds to the `E` key).
