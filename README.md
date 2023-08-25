@@ -1,6 +1,6 @@
 k# ND_Death 
 
-![ND_PanicButton (1)](https://github.com/lucaswydx/ND_Death/assets/112611821/3b32047b-0efa-4fdb-9884-f65675facff7)
+![ND_Death](https://github.com/lucaswydx/ND_Death/assets/59517854/75ddd531-b97a-4620-b893-a2e9c6e0041b)
 
 **ND_Death** is a script for ND-Framework's FiveM game server that enhances the player experience by providing features related to player death, EMS notifications, and respawn mechanics. It allows server administrators to configure various aspects of the player's death and revival process.
 
