@@ -50,7 +50,7 @@ respawnLocations = {
     { x = 1839.21, y = 3673.5, z = 34.26, h = 198.93 }, -- Another example respawn location
     -- Add more respawn locations here
 },
-
+```
 ## Dependencies
 
 - [ND_Core](https://github.com/ND-Framework/ND-Core): ND_Core provides essential functionalities for seamless integration.
