@@ -1,4 +1,4 @@
-# ND_Death 
+k# ND_Death 
 
 ![ND_PanicButton (1)](https://github.com/lucaswydx/ND_Death/assets/112611821/3b32047b-0efa-4fdb-9884-f65675facff7)
 
@@ -76,5 +76,5 @@ For support, bug reports, or feature requests, please create an issue on this re
 Enjoy the enhanced player experience with ND_Death!
 
 ### Authors
-- [Lucas Wyatt](https://github.com/lucaswydx)
+- [Lucas](https://github.com/lucaswydx)
 - [TheStoicBear](https://github.com/TheStoicBear)
