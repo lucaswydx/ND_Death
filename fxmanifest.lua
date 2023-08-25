@@ -1,6 +1,6 @@
-author "lucaswydx"
-description "Simple Death System made for ND Framework"
-version "1.0.0"
+author "lucaswydx | TheStoicBear"
+description "A Death System/CPR System made for ND Framework"
+version "2.0.0"
 
 fx_version "cerulean"
 game "gta5"
@@ -12,6 +12,7 @@ client_scripts {
 server_scripts {
     "source/server.lua"
 }
+
 shared_scripts {
     "config.lua"
 }

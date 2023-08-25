@@ -7,79 +7,22 @@ local IsEMSNotified = false  -- Flag to prevent duplicate notifications
 local secondsRemaining = Config.respawnTime
 local isBleedingOut = false
 local bleedOutTime = 0
+local cprInProgress = false
 
-
--- Function to draw custom text on the screen
-function DrawCustomText(text, x, y, scale, font)
-    SetTextFont(font)
-    SetTextProportional(0)
-    SetTextScale(scale, scale)
-    SetTextEdge(1, 0, 0, 0, 255)
-    SetTextDropShadow(0, 0, 0, 0, 255)
-    SetTextOutline()
-    SetTextJustification(1)
-    SetTextEntry("STRING")
-    AddTextComponentString(text)
-    DrawText(x, y)
-end
-
-
--- Function to show respawn text
-function ShowRespawnText()
-    local textToShow
-    if secondsRemaining > 0 then
-        textToShow = IsDead and Config.respawnTextWithTimer:format(secondsRemaining) or ""
-    else
-        textToShow = IsDead and Config.respawnText or ""
-    end
-    DrawCustomText(textToShow, 0.500, 0.900, 0.50, 4) -- Updated position
-end
-
-
--- Function to respawn the player
-function RespawnPlayer()
-    local playerPos = Config.respawnPosition
-    local respawnHeading = Config.respawnHeading
-    local playerPed = GetPlayerPed(-1)
+RegisterCommand("callems", function(source, args, rawCommand)
+    local player = source
+    local playerCoords = GetEntityCoords(PlayerPedId())
+    local message = "A player is down and needs medical attention. Respond to the location:"
+    local blip = NotifyMedicDept(message, playerCoords)
     
-    IsDead = false
-    DoScreenFadeOut(1500)
-    Citizen.Wait(1500) 
-    NetworkResurrectLocalPlayer(playerPos.x, playerPos.y, playerPos.z, respawnHeading, true, true, false)
-    SetEntityCoordsNoOffset(playerPed, playerPos.x, playerPos.y, playerPos.z, true, true, true)
-    SetEntityHeading(playerPed, respawnHeading)
-    SetPlayerInvincible(playerPed, false)
-    ClearPedBloodDamage(playerPed)
-    DoScreenFadeIn(1500)
-    secondsRemaining = Config.respawnTime
-end
-
-
--- Function to respawn the player at downed position
-function RespawnPlayerAtDownedPosition()
-    local playerPos = GetEntityCoords(PlayerPedId())
-    local respawnHeading = Config.respawnHeading
-    local playerPed = PlayerPedId() -- Use PlayerPedId() directly
-    
-    IsDead = false
-    DoScreenFadeOut(1500)
-    Citizen.Wait(1500) 
-    NetworkResurrectLocalPlayer(playerPos.x, playerPos.y, playerPos.z, respawnHeading, true, true, false)
-    SetEntityHeading(playerPed, respawnHeading)
-    SetPlayerInvincible(playerPed, false)
-    ClearPedBloodDamage(playerPed)
-    DoScreenFadeIn(1500)
-    secondsRemaining = Config.respawnTime
-end
-
+    IsEMSNotified = true
+end, false)
 
 -- Main Loop --
 Citizen.CreateThread(function()
     while true do
         Citizen.Wait(0)
-        
         local health = GetEntityHealth(PlayerPedId())
-        
         if health < 2 then
             IsDead = true
             if Config.AutoNotify then
@@ -105,7 +48,6 @@ Citizen.CreateThread(function()
             IsDead = false
             IsEMSNotified = false
         end
-        
         if IsDead then
             exports.spawnmanager:setAutoSpawn(false)
             ShowRespawnText()
@@ -131,16 +73,83 @@ Citizen.CreateThread(function()
     end
 end)
 
+-- Function to draw custom text on the screen
+function DrawCustomText(text, x, y, scale, font)
+    SetTextFont(font)
+    SetTextProportional(0)
+    SetTextScale(scale, scale)
+    SetTextEdge(1, 0, 0, 0, 255)
+    SetTextDropShadow(0, 0, 0, 0, 255)
+    SetTextOutline()
+    SetTextJustification(1)
+    SetTextEntry("STRING")
+    AddTextComponentString(text)
+    DrawText(x, y)
+end
 
--- Code to revive player at position
-RegisterNetEvent("ND_Death:AdminRevivePlayerAtPosition")
-AddEventHandler("ND_Death:AdminRevivePlayerAtPosition", function()
+-- Function to show respawn text
+function ShowRespawnText()
+    local textToShow
+    if secondsRemaining > 0 then
+        textToShow = IsDead and Config.respawnTextWithTimer:format(secondsRemaining) or ""
+    else
+        textToShow = IsDead and Config.respawnText or ""
+    end
+    DrawCustomText(textToShow, 0.500, 0.900, 0.50, 4) -- Updated position
+end
+
+-- Function to respawn the player
+function RespawnPlayer()
+    local respawnLocation = GetClosestRespawnLocation(GetEntityCoords(PlayerPedId()))
     local playerPed = PlayerPedId()
 
-    if IsEntityDead(playerPed) then
-        RespawnPlayerAtDownedPosition() -- Call the new function
+    if respawnLocation then
+        IsDead = false
+        DoScreenFadeOut(1500)
+        Citizen.Wait(1500) 
+        NetworkResurrectLocalPlayer(respawnLocation.x, respawnLocation.y, respawnLocation.z, respawnLocation.h, true, true, false)
+        SetEntityCoordsNoOffset(playerPed, respawnLocation.x, respawnLocation.y, respawnLocation.z, true, true, true)
+        SetEntityHeading(playerPed, respawnLocation.h)
+        SetPlayerInvincible(playerPed, false)
+        ClearPedBloodDamage(playerPed)
+        DoScreenFadeIn(1500)
+        secondsRemaining = Config.respawnTime
+    else
+        print("No valid respawn location found.")
     end
-end)
+end
+
+-- Function to get the closest respawn location based on player coordinates
+function GetClosestRespawnLocation(playerCoords)
+    local closestLocation = nil
+    local closestDistance = math.huge
+
+    for _, respawnLocation in pairs(Config.respawnLocations) do
+        local distance = #(vector3(respawnLocation.x, respawnLocation.y, respawnLocation.z) - playerCoords)
+        if distance < closestDistance then
+            closestDistance = distance
+            closestLocation = respawnLocation
+        end
+    end
+
+    return closestLocation
+end
+
+-- Function to respawn the player at downed position
+function RespawnPlayerAtDownedPosition()
+    local playerPos = GetEntityCoords(PlayerPedId())
+    local respawnHeading = Config.respawnHeading
+    local playerPed = PlayerPedId() -- Use PlayerPedId() directly
+    IsDead = false
+    DoScreenFadeOut(1500)
+    Citizen.Wait(1500) 
+    NetworkResurrectLocalPlayer(playerPos.x, playerPos.y, playerPos.z, respawnHeading, true, true, false)
+    SetEntityHeading(playerPed, respawnHeading)
+    SetPlayerInvincible(playerPed, false)
+    ClearPedBloodDamage(playerPed)
+    DoScreenFadeIn(1500)
+    secondsRemaining = Config.respawnTime
+end
 
 -- Event to notify EMS about a downed player
 function NotifyMedicDept(message, coordsToBlip)
@@ -160,6 +169,18 @@ function NotifyMedicDept(message, coordsToBlip)
 			else
 				TriggerEvent('chatMessage', '^3EMS Call', { 255, 255, 255 }, 'Player down and needs medical attention at: ' .. location)
 			end
+			-- Play the existing "Beep_Red" sound
+			function PlayBeepRedSound()
+				local soundName = "Beep_Red"
+				local soundSet = "DLC_HEIST_HACKING_SNAKE_SOUNDS" -- Soundset containing the "Beep_Red" sound
+				local beepVolume = 0.5
+				local beepPitch = 1.0
+
+				PlaySoundFrontend(-1, soundName, soundSet, false)
+			end
+
+			-- Call the function to play the sound
+			PlayBeepRedSound()
 
             -- Add a blip on the map
             local blip = AddBlipForCoord(coordsToBlip.x, coordsToBlip.y, coordsToBlip.z)
@@ -172,6 +193,8 @@ function NotifyMedicDept(message, coordsToBlip)
             BeginTextCommandSetBlipName("STRING")
             AddTextComponentString("EMS Call")
             EndTextCommandSetBlipName(blip)
+		    Citizen.Wait(30000) -- Wait for 30 seconds
+			RemoveBlip(blip) -- Remove the blip
             
             return blip -- Return the blip ID for later use
         end
@@ -182,6 +205,7 @@ end
 RegisterNetEvent("ND_Death:NotifyEMS")
 AddEventHandler("ND_Death:NotifyEMS", function(playerCoords)
     local location = GetStreetNameFromHashKey(GetStreetNameAtCoord(playerCoords.x, playerCoords.y, playerCoords.z))
+    
     -- Create a blip on the map
     local blip = AddBlipForCoord(playerCoords.x, playerCoords.y, playerCoords.z)
     SetBlipSprite(blip, 153) -- EMS blip sprite
@@ -193,16 +217,64 @@ AddEventHandler("ND_Death:NotifyEMS", function(playerCoords)
     BeginTextCommandSetBlipName("STRING")
     AddTextComponentString("EMS Call")
     EndTextCommandSetBlipName(blip)
+	Citizen.Wait(30000) -- Wait for 30 seconds
+    RemoveBlip(blip) -- Remove the blip
+
     if GetResourceState("ModernHUD") == "started" then
         exports["ModernHUD"]:AndyyyNotify({
             title = "<p style='color: #ff0000;'>EMS Call:</p>",
             message = "<p style='color: #ffffff;'>Player down and needs medical attention at:</p><br><p style='color: #ff0000;'>" .. location .. "</p>",
             icon = "fa-solid fa-ambulance",
             colorHex = "#ff0000",
-            timeout = 8000
+            timeout = 30000 -- Set the timeout to 30000 milliseconds (30 seconds)
         })
     else
         TriggerEvent('chatMessage', '^3EMS Call', { 255, 255, 255 }, 'Player down and needs medical attention at: ' .. location)
+    end
+
+    -- Create a timer to remove the blip after 30 seconds
+    Citizen.CreateThread(function()
+        Citizen.Wait(30000) -- Wait for 30 seconds
+        RemoveBlip(blip) -- Remove the blip
+    end)
+end)
+
+-- Code to revive player at position
+RegisterNetEvent("ND_Death:AdminRevivePlayerAtPosition")
+AddEventHandler("ND_Death:AdminRevivePlayerAtPosition", function()
+    local playerPed = PlayerPedId()
+    if IsEntityDead(playerPed) then
+        RespawnPlayerAtDownedPosition() -- Call the new function
+    end
+end)
+
+-- Code to start CPR Animation
+RegisterNetEvent("startCPRAnimation")
+AddEventHandler("startCPRAnimation", function()
+    if cprInProgress then
+        return
+    end
+	
+    local playerPed = PlayerPedId()
+    cprInProgress = true
+    TaskStartScenarioInPlace(playerPed, "CODE_HUMAN_MEDIC_TEND_TO_DEAD", 0, true)
+    Citizen.Wait(10000) -- Adjust the time as needed for the animation to play
+    ClearPedTasks(playerPed)
+    cprInProgress = false
+end)
+
+RegisterNetEvent("SendMedicalNotifications")
+AddEventHandler("SendMedicalNotifications", function(message)
+    if GetResourceState("ModernHUD") == "started" then
+        exports["ModernHUD"]:AndyyyNotify({
+            title = "<p style='color: #34eb52;'>EMS Call:</p>",
+            message = "<p style='color: #ffffff;'>" .. message .. "</p>",
+            icon = "fa-solid fa-ambulance",
+            colorHex = "#34eb52", -- Change to medical green color
+            timeout = 8000
+        })
+    else
+        TriggerEvent('chatMessage', '^3[EMS Dispatch]', { 255, 255, 255 }, message)
     end
 end)
 

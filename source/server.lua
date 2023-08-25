@@ -20,6 +20,45 @@ RegisterCommand("adrev", function(source, args, rawCommand)
     end
 end, false)
 
+-- CPR Command
+RegisterCommand("cpr", function(source, args, rawCommand)
+    local player = source -- Store the source (player) ID
+    local character = NDCore.Functions.GetPlayer(player) -- Fix the variable name from 'src' to 'player'
+
+    if character then
+        local hasPermission = false
+        for _, department in pairs(Config.MedDept) do
+            if character.job == department then
+                hasPermission = true
+                break
+            end
+        end
+
+        if not hasPermission then
+            TriggerClientEvent("chatMessage", player, "^1Error: ^7You don't have permission to use this command.")
+            return
+        end
+
+        local targetPlayerId = tonumber(args[1])
+        if targetPlayerId then
+            TriggerClientEvent("startCPRAnimation", source) -- Trigger the client event to start CPR animation for everyone
+
+            Citizen.Wait(5000) -- Wait for the CPR animation to finish (adjust timing as needed)
+
+            local playerName = GetPlayerName(targetPlayerId) -- Get the target player's name
+            local cprMessage = ("You have initiated CPR on player %s."):format(playerName)
+            TriggerClientEvent("SendMedicalNotifications", player, cprMessage)
+            
+            TriggerClientEvent("ND_Death:AdminRevivePlayerAtPosition", -1, targetPlayerId) -- Pass targetPlayerId to the client event
+
+            local reviveMessage = ("You have revived player %s."):format(playerName)
+            TriggerClientEvent("SendMedicalNotifications", player, reviveMessage)
+        else
+            TriggerClientEvent("chatMessage", player, "^1Error: ^7Character data not found.")
+        end
+    end
+end)
+
 -- This event is triggered from the client to revive a player at their downed position
 RegisterServerEvent("ND_Death:AdminRevivePlayerAtPosition")
 AddEventHandler("ND_Death:AdminRevivePlayerAtPosition", function(targetPlayerId)
@@ -37,8 +76,3 @@ AddEventHandler("ND_Death:AdminRevivePlayerAtPosition", function(targetPlayerId)
     end
 end)
 
--- Handle EMSNotify event
-RegisterCommand("callems", function(source, args, rawCommand)
-    local player = source
-    TriggerClientEvent("ND_Death:NotifyEMS", -1, GetEntityCoords(GetPlayerPed(player)))
-end, false)
