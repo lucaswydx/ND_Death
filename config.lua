@@ -10,8 +10,8 @@ Config = {
         -- Add more respawn locations here
     },
     bleedoutTime = 120, -- Bleed out time in seconds
-	AutoNotify = true,
-    
+	AutoNotify = false,
+    --DeptCheck = false,--Soon
     -- Define medical departments for EMS call
     MedDept = {
         "LSPD",

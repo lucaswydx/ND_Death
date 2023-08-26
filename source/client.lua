@@ -9,14 +9,6 @@ local isBleedingOut = false
 local bleedOutTime = 0
 local cprInProgress = false
 
-RegisterCommand("callems", function(source, args, rawCommand)
-    local player = source
-    local playerCoords = GetEntityCoords(PlayerPedId())
-    local message = "A player is down and needs medical attention. Respond to the location:"
-    local blip = NotifyMedicDept(message, playerCoords)
-    
-    IsEMSNotified = true
-end, false)
 
 -- Main Loop --
 Citizen.CreateThread(function()
@@ -32,8 +24,8 @@ Citizen.CreateThread(function()
                         local character = NDCore.Functions.GetSelectedCharacter()
 
                         if character then
-                            if character.job == department then
-				                local playerCoords = GetEntityCoords(PlayerPedId())
+                            if not Config.DeptCheck or (Config.DeptCheck and character.job == department) then
+                                local playerCoords = GetEntityCoords(PlayerPedId())
                                 local message = "A player is down and needs medical attention. Respond to the location:"
                                 local blip = NotifyMedicDept(message, playerCoords) -- Pass playerCoords to the function
                                 IsEMSNotified = true
@@ -51,8 +43,11 @@ Citizen.CreateThread(function()
         if IsDead then
             exports.spawnmanager:setAutoSpawn(false)
             ShowRespawnText()
-            if IsControlJustReleased(1, 38) then
-                RespawnPlayer()
+				if secondsRemaining == 0 then
+                -- Allow the player to respawn when the timer is zero
+                if IsControlJustReleased(1, 38) then
+                    RespawnPlayer()
+                end
             end
         end
     end
@@ -135,6 +130,7 @@ function GetClosestRespawnLocation(playerCoords)
     return closestLocation
 end
 
+
 -- Function to respawn the player at downed position
 function RespawnPlayerAtDownedPosition()
     local playerPos = GetEntityCoords(PlayerPedId())
@@ -193,8 +189,13 @@ function NotifyMedicDept(message, coordsToBlip)
             BeginTextCommandSetBlipName("STRING")
             AddTextComponentString("EMS Call")
             EndTextCommandSetBlipName(blip)
-		    Citizen.Wait(30000) -- Wait for 30 seconds
-			RemoveBlip(blip) -- Remove the blip
+			local blipDuration = 30000 -- Set the blip duration in milliseconds (30 seconds)
+
+			-- Create a timer to remove the blip after the specified duration
+			Citizen.CreateThread(function()
+				Citizen.Wait(blipDuration)
+				RemoveBlip(blip) -- Remove the blip
+			end)
             
             return blip -- Return the blip ID for later use
         end
@@ -217,8 +218,14 @@ AddEventHandler("ND_Death:NotifyEMS", function(playerCoords)
     BeginTextCommandSetBlipName("STRING")
     AddTextComponentString("EMS Call")
     EndTextCommandSetBlipName(blip)
-	Citizen.Wait(30000) -- Wait for 30 seconds
-    RemoveBlip(blip) -- Remove the blip
+    local blipDuration = 30000 -- Set the blip duration in milliseconds (30 seconds)
+
+    -- Create a timer to remove the blip after the specified duration
+    Citizen.CreateThread(function()
+        Citizen.Wait(blipDuration)
+        RemoveBlip(blip) -- Remove the blip
+    end)
+
 
     if GetResourceState("ModernHUD") == "started" then
         exports["ModernHUD"]:AndyyyNotify({
@@ -238,6 +245,7 @@ AddEventHandler("ND_Death:NotifyEMS", function(playerCoords)
         RemoveBlip(blip) -- Remove the blip
     end)
 end)
+
 
 -- Code to revive player at position
 RegisterNetEvent("ND_Death:AdminRevivePlayerAtPosition")
@@ -263,6 +271,8 @@ AddEventHandler("startCPRAnimation", function()
     cprInProgress = false
 end)
 
+
+
 RegisterNetEvent("SendMedicalNotifications")
 AddEventHandler("SendMedicalNotifications", function(message)
     if GetResourceState("ModernHUD") == "started" then
@@ -278,3 +288,7 @@ AddEventHandler("SendMedicalNotifications", function(message)
     end
 end)
 
+Citizen.CreateThread(function()
+    Citizen.Wait(30000) -- Wait for 30 seconds
+    RemoveBlip(blip) -- Remove the blip
+end)
